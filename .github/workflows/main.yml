@@ -1,3 +1,4 @@
+
 name: MANDO AI PRO APK
 
 on:
@@ -18,26 +19,36 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Find and extract project ZIP
+        shell: bash
         run: |
-          ZIP_FILE=$(find . -maxdepth 3 -type f -iname '*android*source*.zip' | head -n 1)
-          if [ -z "$ZIP_FILE" ]; then
-            ZIP_FILE=$(find . -maxdepth 3 -type f -name '*.zip' | head -n 1)
-          fi
+          set -e
+
+          ZIP_FILE=$(find . -maxdepth 5 -type f -iname '*.zip' | head -n 1)
+
           if [ -z "$ZIP_FILE" ]; then
             echo "ERROR: Project ZIP was not found."
             exit 1
           fi
+
           mkdir -p /tmp/mando-project
           unzip -o "$ZIP_FILE" -d /tmp/mando-project
-          PROJECT_DIR=$(find /tmp/mando-project -name settings.gradle -type f | head -n 1 | xargs dirname)
+
+          PROJECT_DIR=$(find /tmp/mando-project -name settings.gradle -type f | head -n 1 | xargs -r dirname)
+
           if [ -z "$PROJECT_DIR" ]; then
             echo "ERROR: settings.gradle was not found."
             exit 1
           fi
+
           cp -a "$PROJECT_DIR"/. .
-          echo "Project files extracted."
+
+          if [ ! -d app ]; then
+            echo "ERROR: app folder was not found."
+            exit 1
+          fi
+
+          echo "Project files extracted successfully."
           ls -la
-          test -d app
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -46,7 +57,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
